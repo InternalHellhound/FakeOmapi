@@ -4,15 +4,16 @@ cc_binary {
     relative_install_path: "hw",
     srcs: [
         "main.cpp",
-        // "Channel.cpp",
+        "Channel.cpp",
         "Reader.cpp",
         "Service.cpp",
         "Session.cpp",
-        // "Terminal.cpp",
+        "Terminal.cpp",
     ],
     local_include_dirs: ["include"],
     shared_libs: [
         "libbase",
+        "libbinder",
         "libbinder_ndk",
         "libutils",
     ],

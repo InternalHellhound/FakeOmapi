@@ -8,9 +8,9 @@
 #include <android/binder_ibinder.h>
 
 #include <aidl/android/se/omapi/BnSecureElementService.h>
+#include <aidl/android/se/omapi/ISecureElementReader.h>
 
 #include "Terminal.h"
-// #include "Reader.h"
 
 namespace aidl::android::se::omapi {
 class SecureElementService : public BnSecureElementService {
@@ -37,7 +37,7 @@ class SecureElementService : public BnSecureElementService {
             return "";
         }
 
-        std::shared_ptr<Terminal> getTerminal(const std::string& readerName);
+        Terminal getTerminal(const std::string& readerName);
         
     };
 }

@@ -1,69 +1,35 @@
 #include "Terminal.h"
-#include "Service.h"
 
-Terminal() {
-    mName = ESE_TERMINAL;
-    if (mSEAIDLHal == nullptr) {
-        mSEAIDLHal = ISecureElement::getService();
-        if (mSEAIDLHal != nullptr) {
-            mSEAIDLHal->init(mSEAIDLHalCallback);
-            AIBinder_linkToDeath(mSEAIDLHal->asBinder().get(),
-                                mDeathRecipient.get(), this);
-            mIsConnected = true;
-            
-        }
+namespace aidl::android::se {
+Terminal::AidlCallback {
+    AidlCallback(Terminal* terminal)
+    ::ndk::ScopedAStatus onStateChange(bool in_connected, const std::string& in_debugReason) {
+        stateChange(in_connected, in_debugReason);
+        return ::ndk::ScopedAStatus::ok();
+    }
+    ::ndk::ScopedAStatus getInterfaceVersion(int32_t* _aidl_return) {
+        *_aidl_return = SecureElementService::VERSION;
+        return ::ndk::ScopedAStatus::ok();
+    }
+    ::ndk::ScopedAStatus getInterfaceHash(std::string* _aidl_return) {
+        *_aidl_return = SecureElementService::HASH;
+        return ::ndk::ScopedAStatus::ok();
     }
 }
 
-std::vector<uint8_t> Terminal::transmit(const std::vector<uint8_t>& cmd) {
-    std::lock_guard<std::mutex> lock(mLock);
-    
-    if (!mIsConnected) {
-        return {};
+Terminal::SecureElementDeathRecipient {
+    SecureElementDeathRecipient(Terminal* terminal)
+    : mTerminal(terminal) {}
+    void binderDied(){onDied();}
+    void onDied() {
+        std::lock_guard<std::mutex> lock(mTerminal->mLock);
+        mTerminal->mIsConnected = false;
+        mTerminal->mGetHalRetryCount = 0;
     }
-
-    std::vector<uint8_t> response;
-    if (mSEAIDLHal != nullptr) {
-        mSEAIDLHal->transmit(cmd, &response);
-    }
-
-    if (response.size() == 0) {
-        LOG(ERROR) << "Error in transmit()";
-        std::cout << "Error in transmit()" << std::endl;
-        return {};
-    }
-
-    size_t len = response.size();
-    uint8_t sw1 = len >= 2 ? response[len-2] : 0;
-    uint8_t sw2 = len >= 1 ? response[len-1] : 0;
-
-    if (sw1 == 0x6C) {
-        std::vector<uint8_t> newCmd(cmd);
-        newCmd.back() = sw2;
-        return transmit(newCmd);
-    } else if (sw1 == 0x61) {
-        do {
-            std::vector<uint8_t> getResponseCmd = {cmd[0], 0xC0, 0x00, 0x00, sw2};
-            auto tmp = transmit(getResponseCmd);
-            
-            response.insert(response.end()-2, tmp.begin(), tmp.end()-2);
-            sw1 = tmp[tmp.size()-2];
-            sw2 = tmp[tmp.size()-1];
-        } while (sw1 == 0x61);
-    }
-
-    return response;
 }
 
-// sp<Channel> Terminal::openLogicalChannel(const std::vector<uint8_t>& aid, uint8_t p2) {
-//     std::lock_guard<std::mutex> lock(mLock);
-    
-//     LogicalChannelResponse response;
-//     if (mSEHal != nullptr) {
-//         mSEHal->openLogicalChannel(aid, p2, &response);
-//     }
-    
-//     sp<Channel> channel = new Channel(this, response.channelNumber, response.selectResponse);
-//     mChannels[response.channelNumber] = channel;
-//     return channel;
-// }
+Terminal::Terminal(const std::string& name) {
+    mName = name;
+    mTag = "SecureElement-Terminal-";
+}
+}

@@ -7,3 +7,6 @@
 #include <aidl/android/se/omapi/ISecureElementChannel.h>
 #include <aidl/android/se/omapi/ISecureElementListener.h>
 
+namespace aidl::android::se {
+class SecureElementSession;
+}  // namespace aidl::android::se

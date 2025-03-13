@@ -12,45 +12,88 @@
 #include <aidl/android/se/omapi/BnSecureElementSession.h>
 
 #include <aidl/android/hardware/secure_element/ISecureElement.h>
-#include <aidl/android/hardware/secure_element/BnSecureElement.h>
-#include <aidl/android/hardware/secure_element/ISecureElementCallback.h>
+#include <aidl/android/hardware/secure_element/BnSecureElementCallback.h>
 
-// #include "Channel.h"
+#include <string>
+#include <iostream>
+#include "Channel.h"
+// #include "AccessControl/AccessControlEnforcer.h"
+// #include "Service.h"
 
-// using 
 using aidl::android::hardware::secure_element::ISecureElement;
-using aidl::android::hardware::secure_element::ISecureElementCallback;
-using aidl::android::hardware::secure_element::BnSecureElement;
+using aidl::android::hardware::secure_element::BnSecureElementCallback;
+using aidl::android::se::omapi::ISecureElementListener;
+using aidl::android::se::omapi::ISecureElementSession;
 
-class Terminal : public android::RefBase {
-    public:
-        Terminal();
-        virtual ~Terminal();
+namespace aidl::android::se {
 
-        void close();
-        bool isSecureElementPresent();
-        std::vector<uint8_t> transmit(const std::vector<uint8_t>& data);
-        std::vector<uint8_t> getAtr();
+class Terminal : public ::android::RefBase {
+public:
+    Terminal(const std::string& name);
+    virtual ~Terminal();
 
-        // sp<Channel> openBasicChannel(const std::vector<uint8_t>& aid, uint8_t p2);
-        // sp<Channel> openLogicalChannel(const std::vector<uint8_t>& aid, uint8_t p2);
-        // void closeChannel(int channelNumber);
+    void initialize(bool retryOnFail);
+    void closeChannel(Channel* channel);
+    void closeChannels();
+    void close();
+    std::string getName() const;
+    std::vector<uint8_t> getAtr();
+    void selectDefaultApplication();
+    Channel* openBasicChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, ISecureElementListener* listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid);
+    Channel* openLogicalChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, ISecureElementListener* listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid);
+    bool isAidSelectable(const std::vector<uint8_t>& aid);
+    std::vector<uint8_t> transmit(const std::vector<uint8_t>& cmd);
+    bool isSecureElementPresent();
+    bool reset();
+    void dump(std::ostream& writer);
 
-    private:
-        std::shared_ptr<ISecureElement> mSEAIDLHal;
-        std::shared_ptr<ISecureElementCallback> mSEAIDLHalCallback;
+    std::string getName();
+
+private:
+    void stateChange(bool state, const std::string& reason);
+    void sendStateChangedBroadcast(bool state);
+    void initializeAccessControl();
+    // ChannelAccess setUpChannelAccess(const std::vector<uint8_t>& aid, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid, bool isBasicChannel);
+    bool isPrivilegedApplication(const std::string& packageName);
+
+    std::string mName;
+    std::string mTag;
+    std::map<int, Channel*> mChannels;
+    std::mutex mLock;
+    bool mIsConnected;
+    int mGetHalRetryCount = 0;
+    // AccessControlEnforcer* mAccessControlEnforcer;
+    ISecureElement* mAidlHal;
+
+    class AidlCallback : public BnSecureElementCallback {
+        public:
+            AidlCallback(Terminal* terminal);
+            // Override from ISecureElementCallback
+            ::ndk::ScopedAStatus onStateChange(bool state, 
+                                                  const std::string& debugReason) override;
+        private:
+            Terminal* mTerminal;
+        };
+
+    bool mDefaultApplicationSelectedOnBasicChannel = true;
     
-        std::mutex mLock;
-        bool mIsConnected;
-        // std::map<int, sp<Channel>> mChannels;
-        std::string mName;
+    const std::string SECURE_ELEMENT_PRIVILEGED_OPERATION_PERMISSION =
+        "ohos.permission.SECURE_ELEMENT_PRIVILEGED_OPERATION";
+    const bool DEBUG = false;
 
-        // AIBinder_DeathRecipient mDeathRecipient;
+    // Death recipient to handle service disconnections
+    class SecureElementDeathRecipient : public AIBinder_DeathRecipient {
+        public:
+            SecureElementDeathRecipient(Terminal* terminal);
+            void binderDied();
 
-        // TODO
-        // sp<AccessControlEnforcer> mAccessControlEnforcer;
+        private:
+            void onDied();
+            Terminal* mTerminal;
+    };
 
-        // void handleStateChange(bool state, const std::string& reason);
-        // status_t initializeHALInterfaces(bool retryOnFail);
-        // void resetInternalState();
+    SecureElementDeathRecipient mDeathRecipient;
+    AidlCallback mAidlCallback;
+    static void onBinderDiedCallback(void* cookie);
 };
+}  // namespace aidl::android::se

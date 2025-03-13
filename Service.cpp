@@ -1,8 +1,17 @@
 #include "Service.h"
 
+// #define TERMINAL 0x73682a8500000113000000020000000000000000000000000000003f
+
+// std::array<uint8_t, 28> TERMINAL = {
+//     0x73, 0x68, 0x2A, 0x85, 0x00, 0x00, 0x01, 0x13,
+//     0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
+//     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+//     0x00, 0x00, 0x00, 0x3F
+// };
+
 namespace aidl::android::se::omapi {
     SecureElementService::SecureElementService() {
-        mTerminals.insert({"eSE1", "new Terminal()"});
+        mTerminals.insert({"eSE1", "TERMINAL"});
     }
 
     ndk::ScopedAStatus SecureElementService::getReaders(std::vector<std::string>* readers) {
@@ -36,11 +45,15 @@ namespace aidl::android::se::omapi {
                                                         std::shared_ptr<ISecureElementReader>* readerObj) {
         LOG(INFO) << __func__;
         std::cout << "getReader for " << readerName.c_str() << std::endl;
+        LOG(INFO) << "readerObj pointer address: 0x" 
+        << std::hex << reinterpret_cast<uintptr_t>((*readerObj).get());
 
         for (const auto& pair : mTerminals) {
             if (pair.first.compare(readerName) == 0) {
+                std::cout << "Find reader for: " << readerName.c_str() << std::endl;
                 // readerObj = pair.second;
-                std::cout << "Find reader for: " << readerName.c_str() << ", " << pair.second << std::endl;
+                LOG(INFO) << "readerObj pointer address: 0x" 
+                << std::hex << reinterpret_cast<uintptr_t>((*readerObj).get());
                 return ndk::ScopedAStatus::ok();
             }
         }
