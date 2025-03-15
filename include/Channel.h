@@ -3,7 +3,7 @@
 #include <aidl/android/se/omapi/BnSecureElementChannel.h>
 #include <aidl/android/se/omapi/ISecureElementListener.h>
 
-#include <binder/IBinder.h>
+#include <utils/RefBase.h>
 
 #include "Terminal.h"
 #include "Session.h"
@@ -14,7 +14,7 @@ using aidl::android::se::omapi::ISecureElementListener;
 namespace aidl::android::se {
 class Terminal;
 
-class Channel : ::android::IBinder::DeathRecipient {
+class Channel : ::android::RefBase {
     public:
         Channel(SecureElementSession session, 
             Terminal* terminal,
@@ -25,7 +25,7 @@ class Channel : ::android::IBinder::DeathRecipient {
 
         ~Channel();
 
-        // void binderDied();
+        void binderDied();
         void close();
         std::vector<uint8_t> transmit(const std::vector<uint8_t>& command);
         // std::shared_ptr<ChannelAccess> getChannelAccess();

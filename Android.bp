@@ -13,7 +13,6 @@ cc_binary {
     local_include_dirs: ["include"],
     shared_libs: [
         "libbase",
-        "libbinder",
         "libbinder_ndk",
         "libutils",
     ],
