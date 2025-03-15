@@ -26,6 +26,7 @@ using aidl::android::se::omapi::ISecureElementListener;
 using aidl::android::se::omapi::ISecureElementSession;
 
 namespace aidl::android::se {
+class Channel;
 
 class Terminal : public ::android::RefBase {
 public:
@@ -69,8 +70,7 @@ private:
         public:
             AidlCallback(Terminal* terminal);
             // Override from ISecureElementCallback
-            ::ndk::ScopedAStatus onStateChange(bool state, 
-                                                  const std::string& debugReason) override;
+            ::ndk::ScopedAStatus onStateChange(bool state, const std::string& debugReason) override;
         private:
             Terminal* mTerminal;
         };
@@ -82,17 +82,17 @@ private:
     const bool DEBUG = false;
 
     // Death recipient to handle service disconnections
-    class SecureElementDeathRecipient : public AIBinder_DeathRecipient {
-        public:
-            SecureElementDeathRecipient(Terminal* terminal);
-            void binderDied();
+    // class SecureElementDeathRecipient : public AIBinder_DeathRecipient {
+    //     public:
+    //         SecureElementDeathRecipient(Terminal* terminal);
+    //         void binderDied();
 
-        private:
-            void onDied();
-            Terminal* mTerminal;
-    };
+    //     private:
+    //         void onDied();
+    //         Terminal* mTerminal;
+    // };
 
-    SecureElementDeathRecipient mDeathRecipient;
+    // SecureElementDeathRecipient mDeathRecipient;
     AidlCallback mAidlCallback;
     static void onBinderDiedCallback(void* cookie);
 };
