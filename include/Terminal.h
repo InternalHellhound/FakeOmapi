@@ -4,6 +4,7 @@
 #include <map>
 #include <mutex>
 
+#include <android-base/logging.h>
 #include <android/binder_ibinder.h>
 
 #include <utils/RefBase.h>
@@ -27,6 +28,7 @@ using aidl::android::se::omapi::ISecureElementSession;
 
 namespace aidl::android::se {
 class Channel;
+void onClientDeath(void* cookie);
 
 class Terminal : public ::android::RefBase {
 public:
@@ -64,7 +66,7 @@ private:
     bool mIsConnected;
     int mGetHalRetryCount = 0;
     // AccessControlEnforcer* mAccessControlEnforcer;
-    ISecureElement* mAidlHal;
+    std::shared_ptr<ISecureElement> mAidlHal;
 
     class AidlCallback : public BnSecureElementCallback {
         public:
@@ -92,8 +94,8 @@ private:
     //         Terminal* mTerminal;
     // };
 
-    // SecureElementDeathRecipient mDeathRecipient;
-    AidlCallback mAidlCallback;
+    AIBinder_DeathRecipient* mDeathRecipient;
+    std::shared_ptr<AidlCallback> mAidlCallback;
     static void onBinderDiedCallback(void* cookie);
 };
 }  // namespace aidl::android::se
