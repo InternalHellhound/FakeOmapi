@@ -36,8 +36,12 @@ void Terminal::stateChange(bool state, const std::string& reason) {
         // if (mAccessControlEnforcer != nullptr) {
         //     mAccessControlEnforcer->reset();
         // }
+    } else {
+        Terminal::closeChannels();
+        //initializeAccessControl();
+        mDefaultApplicationSelectedOnBasicChannel = true;
     }
-    Terminal::closeChannels();
+    //sendStateChangedBroadcast(state);
 }
 
 }
