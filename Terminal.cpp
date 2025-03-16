@@ -1,10 +1,11 @@
 #include "Terminal.h"
+#include "Reader.h"
 #include "Session.h"
 
 #include <android/binder_manager.h>
 
 namespace aidl::android::se {
-using aidl::android::se::SecureElementSession;
+using aidl::android::se::omapi::SecureElementSession;
 
 void onClientDeath(void* cookie) {
     LOG(INFO) << "SecureElementSession has died";
@@ -22,18 +23,7 @@ Terminal::AidlCallback::AidlCallback(Terminal* terminal) {
     return ::ndk::ScopedAStatus::ok();
 }
 
-// Terminal::SecureElementDeathRecipient {
-//     SecureElementDeathRecipient(Terminal* terminal)
-//     : mTerminal(terminal) {}
-//     void binderDied(){onDied();}
-//     void onDied() {
-//         std::lock_guard<std::mutex> lock(mTerminal->mLock);
-//         mTerminal->mIsConnected = false;
-//         mTerminal->mGetHalRetryCount = 0;
-//     }
-// }
-
-Terminal::Terminal(const std::string& name) {
+Terminal::Terminal(const std::string name) {
     mName = name;
     mTag = "SecureElement-Terminal-" + getName();
     mDeathRecipient = AIBinder_DeathRecipient_new(onClientDeath);
@@ -52,7 +42,8 @@ void Terminal::stateChange(bool state, const std::string& reason) {
         //     mAccessControlEnforcer->reset();
         // }
     } else {
-        closeChannels();
+        /* Unimplemented yet */
+        // closeChannels();
         //initializeAccessControl();
         mDefaultApplicationSelectedOnBasicChannel = true;
     }
@@ -113,4 +104,8 @@ void Terminal::initialize(bool retryOnFail) {
         }
     }
 }
+std::shared_ptr<ISecureElementReader> Terminal::newSecureElementReader(std::shared_ptr<omapi::SecureElementService> service) {
+    return ndk::SharedRefBase::make<SecureElementReader>(service, this);
+}
+
 }

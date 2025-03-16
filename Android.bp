@@ -10,6 +10,10 @@ cc_binary {
         "Session.cpp",
         "Terminal.cpp",
     ],
+    // This hex value is fetched from /vendor/etc/hal_uuid_map.xml
+    cflags: [
+        "-DUUID_HEX=\"636F6D2E6E78702E7365637572697479\"",
+    ],
     local_include_dirs: ["include"],
     shared_libs: [
         "libbase",

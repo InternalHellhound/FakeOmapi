@@ -1,5 +1,5 @@
 #include "Service.h"
-
+#include "Terminal.h"
 // #define TERMINAL 0x73682a8500000113000000020000000000000000000000000000003f
 
 // std::array<uint8_t, 28> TERMINAL = {
@@ -11,7 +11,7 @@
 
 namespace aidl::android::se::omapi {
     SecureElementService::SecureElementService() {
-        mTerminals.insert({"eSE1", "TERMINAL"});
+        createTerminals();
     }
 
     ndk::ScopedAStatus SecureElementService::getReaders(std::vector<std::string>* readers) {
@@ -51,14 +51,18 @@ namespace aidl::android::se::omapi {
         for (const auto& pair : mTerminals) {
             if (pair.first.compare(readerName) == 0) {
                 std::cout << "Find reader for: " << readerName.c_str() << std::endl;
-                // readerObj = pair.second;
+                ::android::sp<Terminal> terminal = getTerminal(readerName);
+                if (terminal != nullptr) {
+                    *readerObj = terminal->newSecureElementReader(ndk::SharedRefBase::make<SecureElementService>());
+                }
                 LOG(INFO) << "readerObj pointer address: 0x" 
                 << std::hex << reinterpret_cast<uintptr_t>((*readerObj).get());
                 return ndk::ScopedAStatus::ok();
             }
         }
         return ndk::ScopedAStatus::ok();
-    };
+    }
+
     ndk::ScopedAStatus SecureElementService::isNfcEventAllowed(const std::string& readerName,
                                             const std::vector<uint8_t>& aid,
                                             const std::vector<std::string>& packageNames,
@@ -71,5 +75,22 @@ namespace aidl::android::se::omapi {
             isAllowed->push_back(false);
         }
         return ndk::ScopedAStatus::ok();
-    };
+    }
+
+    void SecureElementService::createTerminals() {
+        addTerminals(SecureElementService::ESE_TERMINAL);
+        /* We don't use sim card in native environment */
+        // addTerminals(UICC_TERMINAL);
+    }
+
+    void SecureElementService::addTerminals(std::string terminalName) {
+        int index = 1;
+        if (terminalName.find(SecureElementService::UICC_TERMINAL) == 0) {
+            index += mActiveSimCount + 1;
+        }
+        /* Ignore add for UICC */
+        const std::string name = terminalName + std::to_string(index);
+        ::android::sp<Terminal> terminal = new Terminal(name);
+        mTerminals.insert({name, terminal});
+    }
 }

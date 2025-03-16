@@ -9,31 +9,40 @@
 
 #include <utils/RefBase.h>
 
-#include <aidl/android/se/omapi/BnSecureElementReader.h>
-#include <aidl/android/se/omapi/BnSecureElementSession.h>
-
 #include <aidl/android/hardware/secure_element/ISecureElement.h>
 #include <aidl/android/hardware/secure_element/BnSecureElementCallback.h>
 
+#include <aidl/android/se/omapi/ISecureElementListener.h>
+#include <aidl/android/se/omapi/ISecureElementSession.h>
+#include <aidl/android/se/omapi/ISecureElementReader.h>
+
 #include <string>
 #include <iostream>
-#include "Channel.h"
 // #include "AccessControl/AccessControlEnforcer.h"
-// #include "Service.h"
 
 using aidl::android::hardware::secure_element::ISecureElement;
 using aidl::android::hardware::secure_element::BnSecureElementCallback;
 using aidl::android::se::omapi::ISecureElementListener;
 using aidl::android::se::omapi::ISecureElementSession;
+using aidl::android::se::omapi::ISecureElementReader;
 
 namespace aidl::android::se {
+namespace omapi {
+class SecureElementService;
+};
 class Channel;
+class SecureElementReader;
+
+using aidl::android::se::Channel;
+// using aidl::android::se::SecureElementReader;
+using aidl::android::se::omapi::SecureElementService;
+
 void onClientDeath(void* cookie);
 
 class Terminal : public ::android::RefBase {
 public:
-    Terminal(const std::string& name);
-    virtual ~Terminal();
+    Terminal(const std::string name);
+    // virtual ~Terminal() = default;
 
     void initialize(bool retryOnFail);
     void closeChannel(Channel* channel);
@@ -42,13 +51,14 @@ public:
     std::string getName() const;
     std::vector<uint8_t> getAtr();
     void selectDefaultApplication();
-    Channel* openBasicChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, ISecureElementListener* listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid);
-    Channel* openLogicalChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, ISecureElementListener* listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid);
+    Channel* openBasicChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, const std::shared_ptr<ISecureElementListener>& listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid);
+    Channel* openLogicalChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, const std::shared_ptr<ISecureElementListener>& listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid);
     bool isAidSelectable(const std::vector<uint8_t>& aid);
     std::vector<uint8_t> transmit(const std::vector<uint8_t>& cmd);
     bool isSecureElementPresent();
     bool reset();
     void dump(std::ostream& writer);
+    std::shared_ptr<ISecureElementReader> newSecureElementReader(std::shared_ptr<SecureElementService> service);
 
     std::string getName();
 
@@ -83,19 +93,10 @@ private:
         "ohos.permission.SECURE_ELEMENT_PRIVILEGED_OPERATION";
     const bool DEBUG = false;
 
-    // Death recipient to handle service disconnections
-    // class SecureElementDeathRecipient : public AIBinder_DeathRecipient {
-    //     public:
-    //         SecureElementDeathRecipient(Terminal* terminal);
-    //         void binderDied();
-
-    //     private:
-    //         void onDied();
-    //         Terminal* mTerminal;
-    // };
-
     AIBinder_DeathRecipient* mDeathRecipient;
     std::shared_ptr<AidlCallback> mAidlCallback;
     static void onBinderDiedCallback(void* cookie);
+    
+    friend class SecureElementReader;
 };
 }  // namespace aidl::android::se
