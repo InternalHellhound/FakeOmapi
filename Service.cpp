@@ -93,4 +93,13 @@ namespace aidl::android::se::omapi {
         ::android::sp<Terminal> terminal = new Terminal(name);
         mTerminals.insert({name, terminal});
     }
+
+    ::android::sp<Terminal> SecureElementService::getTerminal(const std::string& terminalName) {
+        LOG(INFO) << __func__;
+        auto it = mTerminals.find(terminalName);
+        if (it != mTerminals.end()) {
+            return it->second; // Valid: 'it->second' is the value
+        }
+        return nullptr;
+    }
 }

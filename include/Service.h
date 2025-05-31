@@ -50,6 +50,5 @@ class SecureElementService : public BnSecureElementService {
         void addTerminals(const std::string terminalName);
     
         ::android::sp<Terminal> getTerminal(const std::string& readerName);
-        
     };
 }

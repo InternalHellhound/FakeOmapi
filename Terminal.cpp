@@ -104,8 +104,29 @@ void Terminal::initialize(bool retryOnFail) {
         }
     }
 }
+
 std::shared_ptr<ISecureElementReader> Terminal::newSecureElementReader(std::shared_ptr<omapi::SecureElementService> service) {
     return ndk::SharedRefBase::make<SecureElementReader>(service, this);
+}
+
+Channel* Terminal::openBasicChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, const std::shared_ptr<ISecureElementListener>& listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid) {
+    LOG(INFO) << __func__;
+    return nullptr;
+}
+
+bool Terminal::reset() {
+    LOG(INFO) << __func__;
+    return true;
+}
+
+bool Terminal::isSecureElementPresent() {
+    LOG(INFO) << __func__;
+    return true;
+}
+
+std::vector<uint8_t> Terminal::getAtr() {
+    LOG(INFO) << __func__;
+    return {};
 }
 
 }
