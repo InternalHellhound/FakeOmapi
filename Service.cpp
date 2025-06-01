@@ -44,10 +44,7 @@ namespace aidl::android::se::omapi {
     ndk::ScopedAStatus SecureElementService::getReader(const std::string& readerName,
                                                         std::shared_ptr<ISecureElementReader>* readerObj) {
         LOG(INFO) << __func__;
-        std::cout << "getReader for " << readerName.c_str() << std::endl;
-        LOG(INFO) << "readerObj pointer address: 0x" 
-        << std::hex << reinterpret_cast<uintptr_t>((*readerObj).get());
-
+        LOG(INFO) << "getReader for " << readerName.c_str() << std::endl;
         for (const auto& pair : mTerminals) {
             if (pair.first.compare(readerName) == 0) {
                 std::cout << "Find reader for: " << readerName.c_str() << std::endl;
@@ -55,8 +52,6 @@ namespace aidl::android::se::omapi {
                 if (terminal != nullptr) {
                     *readerObj = terminal->newSecureElementReader(ndk::SharedRefBase::make<SecureElementService>());
                 }
-                LOG(INFO) << "readerObj pointer address: 0x" 
-                << std::hex << reinterpret_cast<uintptr_t>((*readerObj).get());
                 return ndk::ScopedAStatus::ok();
             }
         }

@@ -121,12 +121,21 @@ bool Terminal::reset() {
 
 bool Terminal::isSecureElementPresent() {
     LOG(INFO) << __func__;
-    return true;
+    if (mAidlHal != nullptr) {
+        return mAidlHal->isCardPresent();
+    }
+    LOG(ERROR) << __func__ << ": Can't find mAidlHal!, please init it first."
+    return false;
 }
 
 std::vector<uint8_t> Terminal::getAtr() {
     LOG(INFO) << __func__;
     return {};
+}
+
+::ndk::ScopedAStatus Terminal::AidlCallback::onStateChange(bool state, const std::string& debugReason) {
+    LOG(INFO) << __func__ << ": State: " << state << "Reason: " << debugReason;
+    return ::ndk::ScopedAStatus::ok();
 }
 
 }
