@@ -2,6 +2,7 @@
 
 #include <aidl/android/se/omapi/BnSecureElementChannel.h>
 #include <aidl/android/se/omapi/ISecureElementListener.h>
+#include <aidl/android/se/omapi/ISecureElementSession.h>
 
 #include <utils/RefBase.h>
 
@@ -9,23 +10,24 @@
 
 using aidl::android::se::omapi::BnSecureElementChannel;
 using aidl::android::se::omapi::ISecureElementListener;
+using aidl::android::se::omapi::ISecureElementSession;
 
 namespace aidl::android::se {
-namespace omapi {
-class SecureElementSession;
-}
-using aidl::android::se::omapi::SecureElementSession;
+// namespace omapi {
+// class SecureElementSession;
+// }
+// using aidl::android::se::omapi::SecureElementSession;
 
 class Channel : public ::android::RefBase {
     public:
-        Channel(SecureElementSession* session, 
+        Channel(ISecureElementSession* session, 
             Terminal* terminal,
             int channelNumber,
             const std::vector<uint8_t>& selectResponse,
             const std::vector<uint8_t>& aid,
-            const ISecureElementListener& listener);
+            const std::shared_ptr<ISecureElementListener>& listener);
 
-        ~Channel();
+        virtual ~Channel() = default;
 
         void binderDied();
         void close() const;
@@ -38,9 +40,12 @@ class Channel : public ::android::RefBase {
         bool isBasicChannel();
         bool isClosed();
     private:
-        std::shared_ptr<Terminal>* mTerminal;
+        ISecureElementSession* mSession;
+        Terminal* mTerminal;
         int mChannelNumber;
         std::vector<uint8_t> mSelectResponse;
+        std::vector<uint8_t> mAid;
+        const std::shared_ptr<ISecureElementListener>& mListener;
 
         bool selectNext();
         std::vector<uint8_t> setChannelToClassByte(uint8_t data, int channelNumber);

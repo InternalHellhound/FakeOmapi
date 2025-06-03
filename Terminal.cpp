@@ -2,10 +2,12 @@
 #include "Reader.h"
 #include "Session.h"
 #include "Service.h"
+#include "Channel.h"
 
 #include "ByteArrayConverter.h"
 
 #include <android/binder_manager.h>
+#include <aidl/android/hardware/secure_element/LogicalChannelResponse.h>
 
 namespace aidl::android::se {
 using aidl::android::se::omapi::SecureElementSession;
@@ -140,7 +142,52 @@ Channel* Terminal::openBasicChannel(ISecureElementSession* session, const std::v
 
 Channel* Terminal::openLogicalChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, const std::shared_ptr<ISecureElementListener>& listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid) {
     LOG(INFO) << __func__;
-    LOG(ERROR) << __func__ << " 还没写";
+    // LOG(ERROR) << __func__ << " 还没写";
+    if (aid.empty()) {
+        LOG(INFO) << __func__ << ": AID is empty";
+    } else if (aid.size() < 5 || aid.size() > 16) {
+        LOG(ERROR) << ": AID out of range";
+        return nullptr;
+    } else if (!mIsConnected) {
+        LOG(ERROR) << __func__ << ": SE is not connected";
+        return nullptr;
+    }
+
+    if (packageName != "") {
+        LOG(WARNING) << __func__ << ": Enable access control on logical channel for: " << packageName;
+    } else if (!uuid.empty()) {
+        LOG(WARNING) << __func__ << ": Enable access control on logical channel for uid: " << pid << ", uuid: " << hex2string(uuid);
+    }
+
+    if (packageName != "" || !uuid.empty()) {
+        LOG(ERROR) << __func__ << ": setUpChannelAccess 没写";
+        // channelAccess = setUpChannelAccess(aid, packageName, uuid, pid, false);
+    }
+
+    std::lock_guard<std::mutex> lock(mLock);
+    // int* status = int[1];
+    // status[0] = 0;
+    if (mAidlHal != nullptr) {
+        // response[0] = new LogicalChannelResponse();
+        ::aidl::android::hardware::secure_element::LogicalChannelResponse* responseArray =
+            new ::aidl::android::hardware::secure_element::LogicalChannelResponse[1];
+        ::aidl::android::hardware::secure_element::LogicalChannelResponse aidlRs;
+        ndk::ScopedAStatus oStatus = mAidlHal->openLogicalChannel(aid.empty() ? std::vector<uint8_t>() : aid, p2, &aidlRs);
+        if (!oStatus.isOk()) {
+            LOG(ERROR) << __func__ << ": openLogicalChannel failed: " << oStatus.getDescription();
+        } else {
+            responseArray[0] = aidlRs;
+            int channelNumber = responseArray[0].channelNumber;
+            std::vector<uint8_t> selectResponse = responseArray[0].selectResponse;
+            Channel* logicalChannel = new ::aidl::android::se::Channel(session, this, channelNumber, selectResponse, aid, listener);
+            mChannels.insert(std::make_pair(channelNumber, logicalChannel));
+            return logicalChannel;
+        }
+    } else {
+        LOG(ERROR) << __func__ << ": Can't find mAidlHal, and don't support HIDL hal, returning...";
+        return nullptr;
+    }
+
     return nullptr;
 }
 
@@ -155,6 +202,7 @@ bool Terminal::isSecureElementPresent() {
     bool p;
     if (mAidlHal != nullptr) {
         mAidlHal->isCardPresent(&p);
+        LOG(INFO) << __func__ << ": " << p;
         return p;
     }
     LOG(ERROR) << __func__ << ": Can't find mAidlHal!, please init it first.";
@@ -163,22 +211,23 @@ bool Terminal::isSecureElementPresent() {
 
 std::vector<uint8_t> Terminal::getAtr() {
     LOG(INFO) << __func__;
+    std::vector<uint8_t> atr;
+
     if (!mIsConnected) {
         LOG(ERROR) << "Not connected";
-        return {};
+        return atr;
     }
 
-    std::vector<uint8_t> atr;
     if (mAidlHal != nullptr) {
         LOG(INFO) << "Fetching atr from AIDL hal";
         mAidlHal->getAtr(&atr);
         if (atr.empty()) {
             LOG(ERROR) << "Atr is empty!";
-            return {};
+            return atr;
         }
     } else {
         LOG(ERROR) << "No AIDL hal found!";
-        return {};
+        return atr;
     }
     if (DEBUG) {
         LOG(INFO) << "ATR: " << hex2string(atr);

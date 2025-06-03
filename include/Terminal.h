@@ -71,7 +71,7 @@ private:
 
     std::string mName;
     std::string mTag;
-    std::map<int, Channel*> mChannels;
+    std::map<int, std::shared_ptr<Channel>> mChannels;
     std::mutex mLock;
     bool mIsConnected;
     int mGetHalRetryCount = 0;

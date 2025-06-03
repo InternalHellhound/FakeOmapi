@@ -1,6 +1,19 @@
 #include "Channel.h"
 
 namespace aidl::android::se {
+
+Channel::Channel(ISecureElementSession* session, 
+            Terminal* terminal,
+            int channelNumber,
+            const std::vector<uint8_t>& selectResponse,
+            const std::vector<uint8_t>& aid,
+            const std::shared_ptr<ISecureElementListener>& listener): mSession(session),
+    mTerminal(terminal),
+    mChannelNumber(channelNumber),
+    mSelectResponse(selectResponse),
+    mAid(aid),
+    mListener(listener){};
+
 int Channel::getChannelNumber() const {
     LOG(INFO) << __func__;
     return 0;
