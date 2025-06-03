@@ -21,13 +21,13 @@ using aidl::android::se::Terminal;
 class SecureElementReader : public BnSecureElementReader {
     public:
         SecureElementReader(std::shared_ptr<SecureElementService> service, Terminal* terminal);
-        std::vector<uint8_t> getAtr();
         ::ndk::ScopedAStatus isSecureElementPresent(bool* isTrue);
-        ::ndk::ScopedAStatus closeSessions();
-        void removeSession(SecureElementSession* session);
         ::ndk::ScopedAStatus openSession(std::shared_ptr<ISecureElementSession>* session);
-        Terminal& getTerminal();
+        ::ndk::ScopedAStatus closeSessions();
         ::ndk::ScopedAStatus reset(bool* isReset);
+        void removeSession(SecureElementSession* session);
+        std::vector<uint8_t> getAtr();
+        Terminal& getTerminal();
 
     private:
         std::mutex mLock;

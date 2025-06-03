@@ -34,6 +34,7 @@ void Terminal::onClientDeathWrapper(void* cookie) {
 Terminal::AidlCallback::AidlCallback(Terminal* terminal) {
         mTerminal = terminal;
 }
+
 ::ndk::ScopedAStatus Terminal::AidlCallback::onStateChange(bool state, const std::string& debugReason) {
     mTerminal->stateChange(state, debugReason);
     return ::ndk::ScopedAStatus::ok();
@@ -124,8 +125,9 @@ void Terminal::initialize(bool retryOnFail) {
             AIBinder_linkToDeath(mAidlHal->asBinder().get(),
                                 mDeathRecipient, this);
             mIsConnected = true;
+        } else {
+            LOG(ERROR) << __func__ << ": Failed to get SE service: " << bName;
         }
-        LOG(ERROR) << __func__ << ": Failed to get SE service: " << bName;
     }
 }
 

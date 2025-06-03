@@ -10,15 +10,18 @@ using aidl::android::se::omapi::SecureElementSession;
         mTerminal(terminal){};
 
     std::vector<uint8_t> SecureElementReader::getAtr() {
+        LOG(INFO) << __PRETTY_FUNCTION__;
         return mTerminal->getAtr();
     }
 
     ::ndk::ScopedAStatus SecureElementReader::isSecureElementPresent(bool* isTrue) {
+        LOG(INFO) << __PRETTY_FUNCTION__;
         *isTrue = mTerminal->isSecureElementPresent();
         return ::ndk::ScopedAStatus::ok();
     }
 
     ::ndk::ScopedAStatus SecureElementReader::closeSessions() {
+        LOG(INFO) << __PRETTY_FUNCTION__;
         std::lock_guard<std::mutex> lock(mLock);
         for (auto& cSession : mSessions) {
                 cSession->close();
@@ -28,6 +31,7 @@ using aidl::android::se::omapi::SecureElementSession;
     }
 
     void SecureElementReader::removeSession(SecureElementSession* session) {
+        LOG(INFO) << __PRETTY_FUNCTION__;
         if (!session) {
             LOG(ERROR) << "Session is empty, failed to remove";
             return;
@@ -50,11 +54,11 @@ using aidl::android::se::omapi::SecureElementSession;
     }
 
     ::ndk::ScopedAStatus SecureElementReader::openSession(std::shared_ptr<ISecureElementSession>* session) {
+        LOG(INFO) << __PRETTY_FUNCTION__;
         if (!mTerminal->isSecureElementPresent()) {
             LOG(ERROR) << "Secure Element is not present";
         }
         std::lock_guard<std::mutex> lock(mLock);
-
         auto nSession = ndk::SharedRefBase::make<SecureElementSession>(this);
         mSessions.push_back(nSession);
         *session = std::static_pointer_cast<ISecureElementSession>(nSession);
@@ -62,10 +66,12 @@ using aidl::android::se::omapi::SecureElementSession;
     }
 
     Terminal& SecureElementReader::getTerminal() {
+        LOG(INFO) << __PRETTY_FUNCTION__;
         return *mTerminal;
     }
 
     ::ndk::ScopedAStatus SecureElementReader::reset(bool* isReset) {
+        LOG(INFO) << __PRETTY_FUNCTION__;
         *isReset = mTerminal->reset();
         return ::ndk::ScopedAStatus::ok();
     }

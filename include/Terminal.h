@@ -83,6 +83,8 @@ private:
             AidlCallback(Terminal* terminal);
             // Override from ISecureElementCallback
             ::ndk::ScopedAStatus onStateChange(bool state, const std::string& debugReason) override;
+            // ::ndk::ScopedAStatus getInterfaceVersion(int& version);
+            // ::ndk::ScopedAStatus getInterfaceHash(std::string& hash);
         private:
             Terminal* mTerminal;
         };
