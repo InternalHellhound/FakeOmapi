@@ -3,14 +3,15 @@
 #include "Session.h"
 #include "Service.h"
 
+#include "ByteArrayConverter.h"
+
 #include <android/binder_manager.h>
-#include <iomanip>
-#include <sstream>
 
 namespace aidl::android::se {
 using aidl::android::se::omapi::SecureElementSession;
 
 void Terminal::onClientDeath(void* cookie) {
+    LOG(INFO) << __func__ << ": Die";
     SecureElementSession* session = static_cast<SecureElementSession*>(cookie);
     // if (session && !session->isClosed()) {
     //     session->close();
@@ -112,14 +113,17 @@ void Terminal::initialize(bool retryOnFail) {
     std::lock_guard<std::mutex> lock(mLock);
     if (mAidlHal == nullptr) {
         const std::string bName = std::string(ISecureElement::descriptor) + getName();
+        LOG(INFO) << __func__ << ": Getting Secure Element service: " << bName;
         AIBinder* binder = AServiceManager_waitForService(bName.c_str());
         mAidlHal = ISecureElement::fromBinder(ndk::SpAIBinder(binder));
         if (mAidlHal != nullptr) {
+            LOG(INFO) << __func__ << ": Successfully get SE service: " << bName;
             mAidlHal->init(mAidlCallback);
             AIBinder_linkToDeath(mAidlHal->asBinder().get(),
                                 mDeathRecipient, this);
             mIsConnected = true;
         }
+        LOG(ERROR) << __func__ << ": Failed to get SE service: " << bName;
     }
 }
 
@@ -130,8 +134,16 @@ std::shared_ptr<ISecureElementReader> Terminal::newSecureElementReader(std::shar
 
 Channel* Terminal::openBasicChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, const std::shared_ptr<ISecureElementListener>& listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid) {
     LOG(INFO) << __func__;
+    LOG(ERROR) << __func__ << " 还没写";
     return nullptr;
 }
+
+Channel* Terminal::openLogicalChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, const std::shared_ptr<ISecureElementListener>& listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid) {
+    LOG(INFO) << __func__;
+    LOG(ERROR) << __func__ << " 还没写";
+    return nullptr;
+}
+
 
 bool Terminal::reset() {
     LOG(INFO) << __func__;
@@ -161,7 +173,7 @@ std::vector<uint8_t> Terminal::getAtr() {
         LOG(INFO) << "Fetching atr from AIDL hal";
         mAidlHal->getAtr(&atr);
         if (atr.empty()) {
-            LOG(ERROR) << "Atr length is 0!";
+            LOG(ERROR) << "Atr is empty!";
             return {};
         }
     } else {
@@ -169,14 +181,7 @@ std::vector<uint8_t> Terminal::getAtr() {
         return {};
     }
     if (DEBUG) {
-        std::stringstream ss;
-        ss << "ATR: ";
-        for (size_t i = 0; i < atr.size(); ++i) {
-            ss << std::hex << std::setw(2) << std::setfill('0') 
-               << static_cast<int>(atr[i]);
-            if (i < atr.size() - 1) ss << " ";
-        }
-        LOG(INFO) << ss.str();
+        LOG(INFO) << "ATR: " << hex2string(atr);
     }
     return atr;
 }

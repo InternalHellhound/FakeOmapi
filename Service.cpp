@@ -47,9 +47,10 @@ namespace aidl::android::se::omapi {
         LOG(INFO) << "getReader for " << readerName.c_str() << std::endl;
         for (const auto& pair : mTerminals) {
             if (pair.first.compare(readerName) == 0) {
-                std::cout << "Find reader for: " << readerName.c_str() << std::endl;
+                LOG(INFO) << "Find reader for: " << readerName.c_str() << std::endl;
                 ::android::sp<Terminal> terminal = getTerminal(readerName);
                 if (terminal != nullptr) {
+                    LOG(INFO) << __func__ << ": Getting reader";
                     *readerObj = terminal->newSecureElementReader(ndk::SharedRefBase::make<SecureElementService>());
                 }
                 return ndk::ScopedAStatus::ok();
@@ -86,6 +87,7 @@ namespace aidl::android::se::omapi {
         /* Ignore add for UICC */
         const std::string name = terminalName + std::to_string(index);
         ::android::sp<Terminal> terminal = new Terminal(name);
+        terminal->initialize(index ==1);
         mTerminals.insert({name, terminal});
     }
 
@@ -93,6 +95,7 @@ namespace aidl::android::se::omapi {
         LOG(INFO) << __func__;
         auto it = mTerminals.find(terminalName);
         if (it != mTerminals.end()) {
+            LOG(INFO) << __func__ << "Find terminal for " << terminalName;
             return it->second; // Valid: 'it->second' is the value
         }
         return nullptr;

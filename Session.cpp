@@ -2,6 +2,8 @@
 #include "Channel.h"
 #include "Reader.h"
 
+#include "ByteArrayConverter.h"
+
 namespace aidl::android::se::omapi {
 using aidl::android::se::SecureElementReader;
 
@@ -87,7 +89,35 @@ SecureElementSession::SecureElementSession(SecureElementReader* reader) {
 
     ::ndk::ScopedAStatus SecureElementSession::openLogicalChannel(const std::vector<uint8_t>& aid, int8_t p2,
         const std::shared_ptr<ISecureElementListener>& listener, std::shared_ptr<ISecureElementChannel>* outChannel) {
-        LOG(INFO) << __func__ << " AID = " << p2;
+        LOG(INFO) << __func__ << " AID = " << hex2string(aid) << ", P2 = " << p2;
+        if(mIsClosed) {
+            LOG(ERROR) << __func__ << ": Session is closed!";
+        } else if(listener == nullptr) {
+            LOG(ERROR) << __func__ << ": listener is null!";
+        } else if ((p2 != 0x00) && (p2 != 0x04) && (p2 != 0x08) && (p2 != 0x0C)) {
+            LOG(ERROR) << __func__ << ": Unsupported p2 operation: " << (p2 & 0xFF);
+        }
+        std::string packageName = ""; /* getPackageNameFromCallingUid, empty on native env */
+
+        // if(mReader->getTerminal().getName().starts_with(SecureElementService::ESE_TERMINAL)) {
+            // getUUID logic, hardcode it
+        // }
+
+        Terminal& terminal = mReader->getTerminal();
+        Channel* channel = terminal.openLogicalChannel(this, aid, p2, listener, packageName, mUuid, AIBinder_getCallingPid());
+
+        if(channel == nullptr) {
+            LOG(ERROR) << __func__ << ": openLogicalChannel() - returning null";
+            return ::ndk::ScopedAStatus::ok();
+        }
+
+        LOG(INFO) << __func__ << ": openLogicalChannel() Success. Channel: " << channel->getChannelNumber();
+
+        std::lock_guard<std::mutex> lock(mLock);
+        mChannels.push_back(channel);
+
+        auto sChannel = std::shared_ptr<Channel>(channel); 
+        *outChannel = ndk::SharedRefBase::make<SecureElementChannel>(sChannel);
         return ::ndk::ScopedAStatus::ok();
     }
 

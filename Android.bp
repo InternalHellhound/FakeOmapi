@@ -9,6 +9,7 @@ cc_binary {
         "Service.cpp",
         "Session.cpp",
         "Terminal.cpp",
+        "internal/ByteArrayConverter.cpp",
     ],
     // This hex value is fetched from /vendor/etc/hal_uuid_map.xml
     cflags: [
