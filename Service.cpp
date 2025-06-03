@@ -16,7 +16,7 @@ namespace aidl::android::se::omapi {
 
     ndk::ScopedAStatus SecureElementService::getReaders(std::vector<std::string>* readers) {
             int callingUid = AIBinder_getCallingUid();
-            LOG(INFO) << "getReaders() for uid: " << callingUid << std::endl;
+            LOG(INFO) << "getReaders() for uid: " << callingUid;
             std::string packageName = getPackageNameFromCallingUid(callingUid);
 
             if (packageName != "") {
@@ -34,7 +34,7 @@ namespace aidl::android::se::omapi {
                 for (const auto& pair : mTerminals) {
                     if (pair.first.find(prefix) == 0) {
                         readers->push_back(pair.first);
-                        LOG(INFO) << "Find eseReader: " << pair.first << std::endl;
+                        LOG(INFO) << "Find eseReader: " << pair.first;
                     }
                 }
         }
@@ -87,7 +87,7 @@ namespace aidl::android::se::omapi {
         /* Ignore add for UICC */
         const std::string name = terminalName + std::to_string(index);
         ::android::sp<Terminal> terminal = new Terminal(name);
-        terminal->initialize(index ==1);
+        terminal->initialize(index == 1);
         mTerminals.insert({name, terminal});
     }
 

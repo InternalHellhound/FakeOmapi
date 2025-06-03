@@ -112,7 +112,7 @@ void Terminal::initialize(bool retryOnFail) {
     LOG(INFO) << __func__;
     std::lock_guard<std::mutex> lock(mLock);
     if (mAidlHal == nullptr) {
-        const std::string bName = std::string(ISecureElement::descriptor) + getName();
+        const std::string bName = std::string(ISecureElement::descriptor) + "/" + getName();
         LOG(INFO) << __func__ << ": Getting Secure Element service: " << bName;
         AIBinder* binder = AServiceManager_waitForService(bName.c_str());
         mAidlHal = ISecureElement::fromBinder(ndk::SpAIBinder(binder));
