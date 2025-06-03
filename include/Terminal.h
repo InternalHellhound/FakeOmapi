@@ -37,8 +37,6 @@ using aidl::android::se::Channel;
 // using aidl::android::se::SecureElementReader;
 using aidl::android::se::omapi::SecureElementService;
 
-void onClientDeath(void* cookie);
-
 class Terminal : public ::android::RefBase {
 public:
     Terminal(const std::string name);
@@ -68,6 +66,8 @@ private:
     void initializeAccessControl();
     // ChannelAccess setUpChannelAccess(const std::vector<uint8_t>& aid, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid, bool isBasicChannel);
     bool isPrivilegedApplication(const std::string& packageName);
+    void onClientDeath(void* cookie);
+    static void onClientDeathWrapper(void* cookie);
 
     std::string mName;
     std::string mTag;
@@ -90,12 +90,18 @@ private:
     bool mDefaultApplicationSelectedOnBasicChannel = true;
     
     const std::string SECURE_ELEMENT_PRIVILEGED_OPERATION_PERMISSION =
-        "ohos.permission.SECURE_ELEMENT_PRIVILEGED_OPERATION";
-    const bool DEBUG = false;
+        "android.permission.SECURE_ELEMENT_PRIVILEGED_OPERATION";
+    const bool DEBUG = true;
+
+    const int GET_SERVICE_DELAY_MILLIS = 4 * 1000;
+    const int EVENT_GET_HAL = 1;
+    const int EVENT_NOTIFY_STATE_CHANGE = 2;
 
     AIBinder_DeathRecipient* mDeathRecipient;
     std::shared_ptr<AidlCallback> mAidlCallback;
     static void onBinderDiedCallback(void* cookie);
+
+    void handler(int event, int msg, int delay);
     
     friend class SecureElementReader;
 };

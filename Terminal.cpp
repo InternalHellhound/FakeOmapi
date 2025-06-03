@@ -1,32 +1,45 @@
 #include "Terminal.h"
 #include "Reader.h"
 #include "Session.h"
+#include "Service.h"
 
 #include <android/binder_manager.h>
+#include <iomanip>
+#include <sstream>
 
 namespace aidl::android::se {
 using aidl::android::se::omapi::SecureElementSession;
 
-void onClientDeath(void* cookie) {
-    LOG(INFO) << "SecureElementSession has died";
+void Terminal::onClientDeath(void* cookie) {
     SecureElementSession* session = static_cast<SecureElementSession*>(cookie);
     // if (session && !session->isClosed()) {
     //     session->close();
     // }
+    mIsConnected = false;
+    // if (mAccessControlEnforcer != nullptr) {
+    //     mAccessControlEnforcer.reset();
+    // }
+    this->handler(EVENT_GET_HAL, 0, GET_SERVICE_DELAY_MILLIS);
+}
+
+void Terminal::onClientDeathWrapper(void* cookie) {
+    LOG(INFO) << "Binder has died";
+    Terminal* self = static_cast<Terminal*>(cookie);
+    self->onClientDeath(cookie);
 }
 
 Terminal::AidlCallback::AidlCallback(Terminal* terminal) {
         mTerminal = terminal;
 }
-::ndk::ScopedAStatus Terminal::AidlCallback::onStateChange(bool in_connected, const std::string& in_debugReason) {
-    mTerminal->stateChange(in_connected, in_debugReason);
+::ndk::ScopedAStatus Terminal::AidlCallback::onStateChange(bool state, const std::string& debugReason) {
+    mTerminal->stateChange(state, debugReason);
     return ::ndk::ScopedAStatus::ok();
 }
 
 Terminal::Terminal(const std::string name) {
     mName = name;
     mTag = "SecureElement-Terminal-" + getName();
-    mDeathRecipient = AIBinder_DeathRecipient_new(onClientDeath);
+    mDeathRecipient = AIBinder_DeathRecipient_new(onClientDeathWrapper);
     mAidlCallback = ndk::SharedRefBase::make<AidlCallback>(this);
 }
 
@@ -35,22 +48,26 @@ std::string Terminal::getName() {
 }
 
 void Terminal::stateChange(bool state, const std::string& reason) {
+    LOG(INFO) << __func__ << ": state: " << state << ", reason: " << reason;
     std::lock_guard<std::mutex> lock(mLock);
     mIsConnected = state;
     if (!state) {
+        LOG(INFO) << "state: not connected";
         // if (mAccessControlEnforcer != nullptr) {
         //     mAccessControlEnforcer->reset();
         // }
     } else {
+        LOG(INFO) << "state: connected";
         /* Unimplemented yet */
-        // closeChannels();
+        this->closeChannels();
         //initializeAccessControl();
         mDefaultApplicationSelectedOnBasicChannel = true;
     }
-    //sendStateChangedBroadcast(state);
+    this->handler(EVENT_NOTIFY_STATE_CHANGE, state, 0);
 }
 
 std::vector<uint8_t> Terminal::transmit(const std::vector<uint8_t>& cmd) {
+    LOG(INFO) << __func__;
     std::lock_guard<std::mutex> lock(mLock);
     
     if (!mIsConnected) {
@@ -91,6 +108,7 @@ std::vector<uint8_t> Terminal::transmit(const std::vector<uint8_t>& cmd) {
 }
 
 void Terminal::initialize(bool retryOnFail) {
+    LOG(INFO) << __func__;
     std::lock_guard<std::mutex> lock(mLock);
     if (mAidlHal == nullptr) {
         const std::string bName = std::string(ISecureElement::descriptor) + getName();
@@ -106,6 +124,7 @@ void Terminal::initialize(bool retryOnFail) {
 }
 
 std::shared_ptr<ISecureElementReader> Terminal::newSecureElementReader(std::shared_ptr<omapi::SecureElementService> service) {
+    LOG(INFO) << __func__;
     return ndk::SharedRefBase::make<SecureElementReader>(service, this);
 }
 
@@ -121,21 +140,65 @@ bool Terminal::reset() {
 
 bool Terminal::isSecureElementPresent() {
     LOG(INFO) << __func__;
+    bool p;
     if (mAidlHal != nullptr) {
-        return mAidlHal->isCardPresent();
+        mAidlHal->isCardPresent(&p);
+        return p;
     }
-    LOG(ERROR) << __func__ << ": Can't find mAidlHal!, please init it first."
+    LOG(ERROR) << __func__ << ": Can't find mAidlHal!, please init it first.";
     return false;
 }
 
 std::vector<uint8_t> Terminal::getAtr() {
     LOG(INFO) << __func__;
-    return {};
+    if (!mIsConnected) {
+        LOG(ERROR) << "Not connected";
+        return {};
+    }
+
+    std::vector<uint8_t> atr;
+    if (mAidlHal != nullptr) {
+        LOG(INFO) << "Fetching atr from AIDL hal";
+        mAidlHal->getAtr(&atr);
+        if (atr.empty()) {
+            LOG(ERROR) << "Atr length is 0!";
+            return {};
+        }
+    } else {
+        LOG(ERROR) << "No AIDL hal found!";
+        return {};
+    }
+    if (DEBUG) {
+        std::stringstream ss;
+        ss << "ATR: ";
+        for (size_t i = 0; i < atr.size(); ++i) {
+            ss << std::hex << std::setw(2) << std::setfill('0') 
+               << static_cast<int>(atr[i]);
+            if (i < atr.size() - 1) ss << " ";
+        }
+        LOG(INFO) << ss.str();
+    }
+    return atr;
 }
 
-::ndk::ScopedAStatus Terminal::AidlCallback::onStateChange(bool state, const std::string& debugReason) {
-    LOG(INFO) << __func__ << ": State: " << state << "Reason: " << debugReason;
-    return ::ndk::ScopedAStatus::ok();
+void Terminal::closeChannels() {
+    LOG(INFO) << __func__;
+}
+
+void Terminal::handler(int event, int msg, int delay) {
+    LOG(INFO) << __func__ << ": event: " << event << ", msg: " << msg << ", delay: " << delay;
+    if (event == EVENT_GET_HAL) {
+        LOG(INFO) << "EVENT_GET_HAL";
+        if (mName.starts_with(SecureElementService::ESE_TERMINAL)) {
+            initialize(true);
+        } else {
+            initialize(false);
+        }
+    }
+    if (event == EVENT_NOTIFY_STATE_CHANGE) {
+        LOG(INFO) << "EVENT_NOTIFY_STATE_CHANGE";
+        //sendStateChangedBroadcast()
+    }
 }
 
 }
