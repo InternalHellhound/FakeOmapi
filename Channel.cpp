@@ -16,7 +16,7 @@ Channel::Channel(ISecureElementSession* session,
 
 int Channel::getChannelNumber() const {
     LOG(INFO) << __func__;
-    return 0;
+    return mChannelNumber;
 }
 
 void Channel::close() const {
