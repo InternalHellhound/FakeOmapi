@@ -21,7 +21,7 @@ int Channel::getChannelNumber() const {
 
 void Channel::close() const {
     LOG(INFO) << __func__;
-    mTerninal->closeChannel(this);
+    mTerminal->closeChannel(this);
     mIsClosed = true;
 }
 
