@@ -21,6 +21,8 @@ int Channel::getChannelNumber() const {
 
 void Channel::close() const {
     LOG(INFO) << __func__;
+    mTerninal->closeChannel(this);
+    mIsClosed = true;
 }
 
 
@@ -30,6 +32,7 @@ SecureElementChannel::SecureElementChannel(const std::shared_ptr<Channel>& chann
 
 ndk::ScopedAStatus SecureElementChannel::close() {
     LOG(INFO) << __func__;
+    mChannel->close();
     return ndk::ScopedAStatus::ok();
 }
 
