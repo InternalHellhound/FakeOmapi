@@ -51,7 +51,7 @@ class Channel : public ::android::RefBase {
         std::vector<uint8_t> setChannelToClassByte(uint8_t data, int channelNumber);
         void setCallingPid(int pid);
         void checkCommand(std::vector<uint8_t>& command);
-        bool isClosed;
+        bool mIsClosed;
         friend class SecureElementChannel;
     };
     class SecureElementChannel : public BnSecureElementChannel {
