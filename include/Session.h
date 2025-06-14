@@ -27,13 +27,14 @@ using aidl::android::se::Channel;
 class SecureElementSession : public BnSecureElementSession {
     public:
         SecureElementSession(SecureElementReader* reader);
-        // virtual ~SecureElementSession() = default;
+        virtual ~SecureElementSession() = default;
+
+        ::ndk::ScopedAStatus removeChannel(Channel* channel);
+
         ::ndk::ScopedAStatus getReader(std::shared_ptr<ISecureElementReader>* outReader);
         ::ndk::ScopedAStatus getAtr(std::vector<uint8_t>* outAtr);
         ::ndk::ScopedAStatus close();
         ::ndk::ScopedAStatus closeChannels();
-        ::ndk::ScopedAStatus removeChannel(Channel* channel);
-        ::ndk::ScopedAStatus removeChannels();
         ::ndk::ScopedAStatus isClosed(bool* isClosed);
         ::ndk::ScopedAStatus openBasicChannel(const std::vector<uint8_t>& aid, int8_t p2,
                                                 const std::shared_ptr<ISecureElementListener>& listener, std::shared_ptr<ISecureElementChannel>* outChannel);

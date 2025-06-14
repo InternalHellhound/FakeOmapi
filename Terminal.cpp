@@ -42,7 +42,6 @@ Terminal::AidlCallback::AidlCallback(Terminal* terminal) {
 
 Terminal::Terminal(const std::string name) {
     mName = name;
-    mTag = "SecureElement-Terminal-" + getName();
     mDeathRecipient = AIBinder_DeathRecipient_new(onClientDeathWrapper);
     mAidlCallback = ndk::SharedRefBase::make<AidlCallback>(this);
 }
@@ -204,42 +203,56 @@ bool Terminal::reset() {
 
 void Terminal::closeChannel(Channel* channel) {
     LOG(INFO) << __func__;
+
     if (channel == nullptr) {
-        LOG(WARNING) << __func__ << ": Attempt to close a null channel.";
+        LOG(WARNING) << __func__  << ": Attempt to close a null channel.";
         return;
     }
-    int channelNumber = channel->getChannelNumber();
-    LOG(INFO) << __func__ << ": Closing channel " << channelNumber;
+
     std::lock_guard<std::mutex> lock(mLock);
+
     if (mIsConnected) {
         if (mAidlHal != nullptr) {
-            LOG(INFO) << __func__ << ": Closing channel " << channelNumber << " using AIDL HAL.";
-            ::ndk::ScopedAStatus status = mAidlHal->closeChannel(static_cast<int8_t>(channelNumber));
-            if (!status.isOk()) {
-                LOG(ERROR) << "Error closing channel " << channelNumber
-                           << " using AIDL HAL: " << status.getDescription()
-                           << ", serviceSpecificError: " << status.getServiceSpecificError();
+            LOG(INFO) << __func__  << ": Closing channel " << channel->getChannelNumber() << " using AIDL HAL.";
+            ndk::ScopedAStatus hal_status = mAidlHal->closeChannel(static_cast<int8_t>(channel->getChannelNumber()));
+            if (!hal_status.isOk()) {
+                if (!channel->isBasicChannel()) {
+                    LOG(ERROR) << __func__  << ": Error closing non-basic AIDL channel " << channel->getChannelNumber()
+                               << ". Status: " << hal_status.getDescription()
+                               << ", ServiceSpecificError: " << hal_status.getServiceSpecificError();
+                } else {
+                    LOG(INFO) << __func__  << ": AIDL closeChannel for basic channel " << channel->getChannelNumber()
+                              << " completed with status: " << hal_status.getDescription()
+                              << " (ServiceSpecificError: " << hal_status.getServiceSpecificError() << "). This may be expected.";
+                }
             }
         } else {
-            LOG(WARNING) << __func__ << ": mAidlHal is null. Cannot close channel " << channelNumber << " via HAL.";
+            LOG(WARNING) << __func__  << ": mAidlHal is null. Cannot close channel " << channel->getChannelNumber() << " via HAL.";
         }
     } else {
-        LOG(WARNING) << __func__ << ": Not connected. Channel " << channelNumber << " cannot be closed via HAL.";
+        LOG(WARNING) << __func__  << ": Not connected to SE. Channel " << channel->getChannelNumber() << " cannot be closed via HAL.";
     }
+
+    int channelNumber = channel->getChannelNumber();
     auto it = mChannels.find(channelNumber);
+    bool removedSuccessfully = false;
+
     if (it != mChannels.end()) {
         if (it->second.get() == channel) {
-            LOG(INFO) << __func__ << ": Removing channel " << channelNumber << " from map.";
             mChannels.erase(it);
+            removedSuccessfully = true;
+            LOG(INFO) << __func__  << ": Channel " << channelNumber << " (instance " << channel << ") removed from map.";
         } else {
-            LOG(WARNING) << __func__ << ": Channel " << channelNumber << " found in map, but pointer mismatch. Removing by ID anyway.";
-            mChannels.erase(it);
+            LOG(WARNING) << __func__  << ": Channel " << channelNumber
+                         << " found in map, but instance " << it->second.get()
+                         << " does not match instance being closed " << channel
+                         << ". Not removing from map.";
         }
     } else {
-        LOG(WARNING) << __func__ << ": Channel " << channelNumber << " not found in map for removal.";
+        LOG(WARNING) << __func__  << ": Channel " << channelNumber << " (instance " << channel << ") not found in map for removal (possibly already removed).";
     }
-    if (mChannels.count(channelNumber)) {
-        LOG(ERROR) << mTag << ": Removing channel " << channelNumber << " failed, still in map.";
+    if (mChannels.count(channelNumber) > 0) {
+        LOG(ERROR) << __func__  << ": Channel number " << channelNumber << " still present in map after closeChannel operation. Current instance in map: " << mChannels.at(channelNumber).get();
     }
 }
 
@@ -276,7 +289,6 @@ void Terminal::close() {
             AIBinder_unlinkToDeath(binder, mDeathRecipient, this);
         }
     }
-    mIsConnected = false;
 }
 
 bool Terminal::isSecureElementPresent() {

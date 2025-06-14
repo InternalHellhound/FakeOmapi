@@ -24,6 +24,7 @@ SecureElementSession::SecureElementSession(SecureElementReader* reader) {
 }
 
 ::ndk::ScopedAStatus SecureElementSession::close() {
+    LOG(INFO) << __func__;
     closeChannels();
     mReader->removeSession(this);
     std::lock_guard<std::mutex> lock(mLock);
@@ -32,23 +33,28 @@ SecureElementSession::SecureElementSession(SecureElementReader* reader) {
 }
 
 ::ndk::ScopedAStatus SecureElementSession::removeChannel(Channel* channel) {
+    LOG(INFO) << __func__;
     std::lock_guard<std::mutex> lock(mLock);
     mChannels.erase(
         std::remove(mChannels.begin(), mChannels.end(), channel),
         mChannels.end()
     );
+    LOG(INFO) << "Removed channel: " << channel->getChannelNumber();
     return ::ndk::ScopedAStatus::ok();
 }
 
 ::ndk::ScopedAStatus SecureElementSession::closeChannels() {
+    LOG(INFO) << __func__;
     std::lock_guard<std::mutex> lock(mLock);
     for (auto channel : mChannels) {
         channel->close();
+        LOG(INFO) << "Closed channel: " << channel->getChannelNumber();
     }
     return ::ndk::ScopedAStatus::ok();
 }
 
 ::ndk::ScopedAStatus SecureElementSession::isClosed(bool* isClosed) {
+    LOG(INFO) << __func__;
     std::lock_guard<std::mutex> lock(mLock);
     *isClosed = mIsClosed;
     return ::ndk::ScopedAStatus::ok();

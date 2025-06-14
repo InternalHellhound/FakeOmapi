@@ -1,4 +1,5 @@
 #include "Channel.h"
+#include "Session.h"
 
 namespace aidl::android::se {
 
@@ -23,8 +24,35 @@ int Channel::getChannelNumber() const {
 }
 
 void Channel::close() {
-    mTerminal->closeChannel(this);
-    mIsClosed = true;
+    LOG(INFO) << __func__;
+    bool alreadyClosed = false;
+    {
+        if (mIsClosed) {
+            alreadyClosed = true;
+        } else {
+            mIsClosed = true;
+        }
+    }
+    if (alreadyClosed) {
+        return;
+    }
+    if (mTerminal) {
+        mTerminal->closeChannel(this);
+    } else {
+        LOG(ERROR) << "Channel " << mChannelNumber << ": Terminal is null, cannot perform terminal-level close.";
+    }
+    if (mSession != nullptr) {
+        aidl::android::se::omapi::SecureElementSession* concreteSession =
+            static_cast<aidl::android::se::omapi::SecureElementSession*>(mSession);
+        
+        if (concreteSession) {
+            concreteSession->removeChannel(this); 
+        } else {
+            LOG(ERROR) << "Channel " << mChannelNumber << ": Failed to cast mSession to SecureElementSession for removeChannel call.";
+        }
+    } else {
+        LOG(WARNING) << "Channel " << mChannelNumber << ": Session is null, cannot remove channel from session.";
+    }
 }
 
 std::vector<uint8_t> Channel::getSelectResponse() {
