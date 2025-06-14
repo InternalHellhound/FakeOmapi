@@ -64,5 +64,6 @@ class Channel : public ::android::RefBase {
             ndk::ScopedAStatus selectNext(bool* _aidl_return);
         private:
             std::shared_ptr<Channel> mChannel;
+            bool mIsClosed;
     };
 }  // namespace aidl::android::se
