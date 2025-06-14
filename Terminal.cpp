@@ -53,7 +53,7 @@ std::string Terminal::getName() {
 
 void Terminal::stateChange(bool state, const std::string& reason) {
     LOG(INFO) << __func__ << ": state: " << state << ", reason: " << reason;
-    std::lock_guard<std::mutex> lock(mLock);
+    //std::lock_guard<std::mutex> lock(mLock);
     mIsConnected = state;
     if (!state) {
         LOG(INFO) << "state: not connected";
