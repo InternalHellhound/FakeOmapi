@@ -51,6 +51,7 @@ class Channel : public ::android::RefBase {
         std::vector<uint8_t> setChannelToClassByte(uint8_t data, int channelNumber);
         void setCallingPid(int pid);
         void checkCommand(std::vector<uint8_t>& command);
+        bool isClosed;
         friend class SecureElementChannel;
     };
     class SecureElementChannel : public BnSecureElementChannel {
@@ -64,6 +65,5 @@ class Channel : public ::android::RefBase {
             ndk::ScopedAStatus selectNext(bool* _aidl_return);
         private:
             std::shared_ptr<Channel> mChannel;
-            bool mIsClosed;
     };
 }  // namespace aidl::android::se
