@@ -177,12 +177,15 @@ Channel* Terminal::openLogicalChannel(ISecureElementSession* session, const std:
         ndk::ScopedAStatus oStatus = mAidlHal->openLogicalChannel(aid.empty() ? std::vector<uint8_t>() : aid, p2, &aidlRs);
         if (!oStatus.isOk()) {
             LOG(ERROR) << __func__ << ": openLogicalChannel failed: " << oStatus.getDescription();
+            delete[] responseArray;
+            return nullptr;
         } else {
             responseArray[0] = aidlRs;
             int channelNumber = responseArray[0].channelNumber;
             std::vector<uint8_t> selectResponse = responseArray[0].selectResponse;
-            Channel* logicalChannel = new ::aidl::android::se::Channel(session, this, channelNumber, selectResponse, aid, listener);
+            Channel* logicalChannel = new ::aidl::android::se::Channel(session, this, channelNumber, selectResponse, aid, listener, pid);
             mChannels.insert(std::make_pair(channelNumber, logicalChannel));
+            delete[] responseArray;
             return logicalChannel;
         }
     } else {
@@ -197,6 +200,83 @@ Channel* Terminal::openLogicalChannel(ISecureElementSession* session, const std:
 bool Terminal::reset() {
     LOG(INFO) << __func__;
     return true;
+}
+
+void Terminal::closeChannel(Channel* channel) {
+    LOG(INFO) << __func__;
+    if (channel == nullptr) {
+        LOG(WARNING) << __func__ << ": Attempt to close a null channel.";
+        return;
+    }
+    int channelNumber = channel->getChannelNumber();
+    LOG(INFO) << __func__ << ": Closing channel " << channelNumber;
+    std::lock_guard<std::mutex> lock(mLock);
+    if (mIsConnected) {
+        if (mAidlHal != nullptr) {
+            LOG(INFO) << __func__ << ": Closing channel " << channelNumber << " using AIDL HAL.";
+            ::ndk::ScopedAStatus status = mAidlHal->closeChannel(static_cast<int8_t>(channelNumber));
+            if (!status.isOk()) {
+                LOG(ERROR) << "Error closing channel " << channelNumber
+                           << " using AIDL HAL: " << status.getDescription()
+                           << ", serviceSpecificError: " << status.getServiceSpecificError();
+            }
+        } else {
+            LOG(WARNING) << __func__ << ": mAidlHal is null. Cannot close channel " << channelNumber << " via HAL.";
+        }
+    } else {
+        LOG(WARNING) << __func__ << ": Not connected. Channel " << channelNumber << " cannot be closed via HAL.";
+    }
+    auto it = mChannels.find(channelNumber);
+    if (it != mChannels.end()) {
+        if (it->second.get() == channel) {
+            LOG(INFO) << __func__ << ": Removing channel " << channelNumber << " from map.";
+            mChannels.erase(it);
+        } else {
+            LOG(WARNING) << __func__ << ": Channel " << channelNumber << " found in map, but pointer mismatch. Removing by ID anyway.";
+            mChannels.erase(it);
+        }
+    } else {
+        LOG(WARNING) << __func__ << ": Channel " << channelNumber << " not found in map for removal.";
+    }
+    if (mChannels.count(channelNumber)) {
+        LOG(ERROR) << mTag << ": Removing channel " << channelNumber << " failed, still in map.";
+    }
+}
+
+void Terminal::closeChannels() {
+    LOG(INFO) << __func__;
+    std::vector<std::shared_ptr<Channel>> channelsToClose;
+    {
+        //std::lock_guard<std::mutex> lock(mLock);
+        if (mChannels.empty()) {
+            LOG(INFO) << __func__ << ": No channels to close.";
+            return;
+        }
+        LOG(INFO) << __func__ << ": Preparing to close " << mChannels.size() << " channels.";
+        for (const auto& pair : mChannels) {
+            channelsToClose.push_back(pair.second);
+        }
+    }
+
+    for (const auto& channelPtr : channelsToClose) {
+        if (channelPtr) {
+            LOG(INFO) << __func__ << ": Requesting close for channel " << channelPtr->getChannelNumber();
+            channelPtr->close();
+        }
+    }
+}
+
+void Terminal::close() {
+    LOG(INFO) << __func__;
+    //std::lock_guard<std::mutex> lock(mLock);
+    if (mAidlHal != nullptr) {
+        LOG(INFO) << __func__ << ": Unlinking death recipient.";
+        AIBinder* binder = mAidlHal->asBinder().get();
+        if (binder) {
+            AIBinder_unlinkToDeath(binder, mDeathRecipient, this);
+        }
+    }
+    mIsConnected = false;
 }
 
 bool Terminal::isSecureElementPresent() {
@@ -235,10 +315,6 @@ std::vector<uint8_t> Terminal::getAtr() {
         LOG(INFO) << "ATR: " << hex2string(atr);
     }
     return atr;
-}
-
-void Terminal::closeChannels() {
-    LOG(INFO) << __func__;
 }
 
 void Terminal::handler(int event, int msg, int delay) {
