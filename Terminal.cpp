@@ -135,13 +135,13 @@ std::shared_ptr<ISecureElementReader> Terminal::newSecureElementReader(std::shar
     return ndk::SharedRefBase::make<SecureElementReader>(service, this);
 }
 
-Channel* Terminal::openBasicChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, const std::shared_ptr<ISecureElementListener>& listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid) {
+std::shared_ptr<Channel> Terminal::openBasicChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, const std::shared_ptr<ISecureElementListener>& listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid) {
     LOG(INFO) << __func__;
     LOG(ERROR) << __func__ << " 还没写";
     return nullptr;
 }
 
-Channel* Terminal::openLogicalChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, const std::shared_ptr<ISecureElementListener>& listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid) {
+std::shared_ptr<Channel> Terminal::openLogicalChannel(ISecureElementSession* session, const std::vector<uint8_t>& aid, uint8_t p2, const std::shared_ptr<ISecureElementListener>& listener, const std::string& packageName, const std::vector<uint8_t>& uuid, int pid) {
     LOG(INFO) << __func__;
     // LOG(ERROR) << __func__ << " 还没写";
     if (aid.empty()) {
@@ -182,7 +182,8 @@ Channel* Terminal::openLogicalChannel(ISecureElementSession* session, const std:
             responseArray[0] = aidlRs;
             int channelNumber = responseArray[0].channelNumber;
             std::vector<uint8_t> selectResponse = responseArray[0].selectResponse;
-            Channel* logicalChannel = new ::aidl::android::se::Channel(session, this, channelNumber, selectResponse, aid, listener, pid);
+            // Create a std::shared_ptr for the new Channel
+            auto logicalChannel = std::shared_ptr<Channel>(new Channel(session, this, channelNumber, selectResponse, aid, listener, pid));
             mChannels.insert(std::make_pair(channelNumber, logicalChannel));
             delete[] responseArray;
             return logicalChannel;
