@@ -59,7 +59,7 @@ class Channel : public ::android::RefBase {
         public:
             SecureElementChannel(const std::shared_ptr<Channel>& channel);
             ndk::ScopedAStatus close();
-            ndk::ScopedAStatus isClosed(bool* _aidl_return);
+            ndk::ScopedAStatus isClosed(bool* isClosed);
             ndk::ScopedAStatus isBasicChannel(bool* _aidl_return);
             ndk::ScopedAStatus getSelectResponse(std::vector<uint8_t>* outSelectResponse);
             ndk::ScopedAStatus transmit(const std::vector<uint8_t>& command, std::vector<uint8_t>* outResponse);

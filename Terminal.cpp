@@ -83,8 +83,7 @@ std::vector<uint8_t> Terminal::transmit(const std::vector<uint8_t>& cmd) {
     }
 
     if (response.size() == 0) {
-        LOG(ERROR) << "Error in transmit()";
-        std::cout << "Error in transmit()" << std::endl;
+        LOG(ERROR) << "Empty response in transmit()";
         return {};
     }
 
@@ -182,6 +181,7 @@ std::shared_ptr<Channel> Terminal::openLogicalChannel(ISecureElementSession* ses
             responseArray[0] = aidlRs;
             int channelNumber = responseArray[0].channelNumber;
             std::vector<uint8_t> selectResponse = responseArray[0].selectResponse;
+            LOG(INFO) << __func__ << ": Channel number: " << channelNumber << ", select response: " << hex2string(selectResponse);
             // Create a std::shared_ptr for the new Channel
             auto logicalChannel = std::shared_ptr<Channel>(new Channel(session, this, channelNumber, selectResponse, aid, listener, pid));
             mChannels.insert(std::make_pair(channelNumber, logicalChannel));
@@ -210,7 +210,7 @@ void Terminal::closeChannel(Channel* channel) {
         return;
     }
 
-    std::lock_guard<std::mutex> lock(mLock);
+    // std::lock_guard<std::mutex> lock(mLock);
 
     if (mIsConnected) {
         if (mAidlHal != nullptr) {

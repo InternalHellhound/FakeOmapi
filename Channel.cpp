@@ -99,12 +99,13 @@ std::vector<uint8_t> Channel::transmit(const std::vector<uint8_t>& command) {
 }
 
 bool Channel::isBasicChannel() {
-    LOG(INFO) << __func__;
+    LOG(INFO) << __PRETTY_FUNCTION__;
+    LOG(INFO) << __func__ << ": " << (mChannelNumber == 0);
     return mChannelNumber == 0;
 }
 
 bool Channel::isClosed() {
-    LOG(INFO) << __func__;
+    LOG(INFO) << __func__ << ": " << mIsClosed;
     return mIsClosed;
 }
 
@@ -209,13 +210,15 @@ ndk::ScopedAStatus SecureElementChannel::close() {
     return ndk::ScopedAStatus::ok();
 }
 
-ndk::ScopedAStatus SecureElementChannel::isClosed(bool* _aidl_return) {
+ndk::ScopedAStatus SecureElementChannel::isClosed(bool* isClosed) {
     LOG(INFO) << __func__;
+    *isClosed = mChannel->isClosed();
     return ndk::ScopedAStatus::ok();
 }
 
-ndk::ScopedAStatus SecureElementChannel::isBasicChannel(bool* _aidl_return) {
+ndk::ScopedAStatus SecureElementChannel::isBasicChannel(bool* isBasicChannel) {
     LOG(INFO) << __func__;
+    *isBasicChannel = mChannel->isBasicChannel();
     return ndk::ScopedAStatus::ok();
 }
 
