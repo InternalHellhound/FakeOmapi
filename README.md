@@ -3,10 +3,22 @@
 Aim to run omapi service without java environment.  
 To provide a method to decrypt in recovery like TWRP
 
-only implemented part of original secure element,  
-and now decryption tested passed on Xiaomi 15
+Only implemented part of original secure element app.
 
+Tested devices:
+- Xiaomi SM8750 devices
+- Xiaomi SM8650 devices
+- Redmi SM8650 devices
+- Realme GT7 Pro
 
-__**If you successfully make decryption work on your device, then congratulations to you**__
-
-__**If you use this repo, don't make money in ANY way**__
+How to use:
+-----------
+- Clone this repo to aosp source tree, eg. $TWRP_ROOT/vendor/twrp
+- lunch target device
+- run `make android.se.omapi.fake` 
+ 
+Then, the binary will be found in out/target/product/$DEVICE/vendor 
+ 
+- Copy binary file, manifest file and rc file to your TWRP device tree
+- Build twrp
+- Enjoy
