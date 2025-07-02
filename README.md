@@ -10,15 +10,17 @@ Tested devices:
 - Xiaomi SM8650 devices
 - Redmi SM8650 devices
 - Realme GT7 Pro
+- Oneplus Ace5 Pro
 
 How to use:
 -----------
 - Clone this repo to aosp source tree, eg. $TWRP_ROOT/vendor/twrp
+- Define your KM uuid properly
 - lunch target device
 - run `make android.se.omapi.fake` 
  
 Then, the binary will be found in out/target/product/$DEVICE/vendor 
  
-- Copy binary file, manifest file and rc file to your TWRP device tree
+- Copy binary file, needed dependencies, manifest file and rc file to your TWRP device tree
 - Build twrp
 - Enjoy
