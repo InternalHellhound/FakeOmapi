@@ -1,16 +1,9 @@
 # Fake omapi service written in cpp
 
-Aim to run omapi service without java environment.  
-To provide a method to decrypt in recovery like TWRP
+For running SecureElement service (omapi) without java environment.  
+Providing a method to decrypt in native environment like TWRP
 
-Only implemented part of original secure element app.
-
-Tested devices:
-- Xiaomi SM8750 devices
-- Xiaomi SM8650 devices
-- Redmi SM8650 devices
-- Realme GT7 Pro
-- Oneplus Ace5 Pro
+Only implemented **part** of original secure element app.
 
 How to use:
 -----------
